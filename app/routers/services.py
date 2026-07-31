@@ -72,3 +72,11 @@ async def update_product_rating(product_id: int, db: AsyncSession):
     avg_rating = result.scalar() or 0.0
     product = await db.get(ProductModel, product_id)
     product.rating = avg_rating
+
+
+async def check_ex_review_user(review: Review, user: UserModel, db: AsyncSession) -> None:
+    """Проверяет, оставлял ли пользователь отзыв"""
+    db_review = db.scalar(select(Review).where(Review.product_id == review.product_id, Review.user_id == user.id))
+    if db_review:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Вы уже оставляли отзыв на товар')
+
