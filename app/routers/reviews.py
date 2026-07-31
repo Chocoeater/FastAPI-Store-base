@@ -38,8 +38,8 @@ async def create_review(review: CreateReviewSchema, db: AsyncSession = Depends(g
                         current_user: UserModel = Depends(get_current_buyer)):
     """Создает отзыв"""
     await check_product_id(review.product_id, db)
+    await check_ex_review_user(review.product_id, current_user.id, db)
     db_review = ReviewModel(**review.model_dump(), user_id=current_user.id)
-    await check_ex_review_user(db_review, current_user, db)
     db.add(db_review)
     await db.flush()
     await update_product_rating(db_review.product_id, db)
