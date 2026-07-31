@@ -23,7 +23,7 @@ async def get_all_reviews(db: AsyncSession = Depends(get_async_db)):
     return reviews
 
 
-@product_router.get('/review/{product_id}', response_model=list[ReviewSchema], status_code=status.HTTP_200_OK)
+@product_router.get('/{product_id}/reviews', response_model=list[ReviewSchema], status_code=status.HTTP_200_OK)
 async def get_product_review(product_id: int, db: AsyncSession = Depends(get_async_db)):
     """Возвращает отзывы по конкретному продукту"""
     await check_product_id(product_id, db)
