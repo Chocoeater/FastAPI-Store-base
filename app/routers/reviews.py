@@ -39,9 +39,10 @@ async def create_review(review: CreateReviewSchema, db: AsyncSession = Depends(g
     await check_product_id(review.product_id, db)
     db_review = ReviewModel(**review.model_dump(), user_id=current_user.id)
     db.add(db_review)
+    await db.flush()
+    await update_product_rating(db_review.product_id, db)
     await db.commit()
     await db.refresh(db_review)
-    await update_product_rating(db_review.product_id, db)
     return db_review
 
 
@@ -53,7 +54,8 @@ async def delete_review(review_id: int, db: AsyncSession = Depends(get_async_db)
     if review.user_id != current_user.id or current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Можно удалить только свой отзыв")
     await db.execute(update(ReviewModel).where(ReviewModel.id == review_id).values(is_active=False))
+    await db.flush()
+    await update_product_rating(review.product_id, db)
     await db.commit()
     await db.refresh(review)
-    await update_product_rating(review.product_id, db)
     return {"message": "Отзыв удален"}

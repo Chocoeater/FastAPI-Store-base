@@ -68,8 +68,7 @@ async def check_review_id(review_id: int, db: AsyncSession) -> Review:
 async def update_product_rating(product_id: int, db: AsyncSession):
     """Обновляет рейтинг продукта"""
     result = await db.execute(
-        select(func.avg(Review.grade)).where(Review.product_id == product_id, Review.is_active == True))
+        select(func.round(func.avg(Review.grade), 2)).where(Review.product_id == product_id, Review.is_active == True))
     avg_rating = result.scalar() or 0.0
     product = await db.get(ProductModel, product_id)
     product.rating = avg_rating
-    await db.commit()
