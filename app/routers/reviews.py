@@ -22,7 +22,7 @@ async def get_all_reviews(db: AsyncSession = Depends(get_async_db)):
     return reviews
 
 
-@router.get('/{product_id}', response_model=ReviewSchema, status_code=status.HTTP_200_OK)
+@router.get('/{product_id}', response_model=list[ReviewSchema], status_code=status.HTTP_200_OK)
 async def get_product_review(product_id: int, db: AsyncSession = Depends(get_async_db)):
     """Возвращает отзывы по конкретному продукту"""
     await check_product_id(product_id, db)
@@ -51,7 +51,7 @@ async def delete_review(review_id: int, db: AsyncSession = Depends(get_async_db)
                         current_user: UserModel = Depends(get_current_user)):
     """Помечает отзыв как неактивный"""
     review = await check_review_id(review_id, db)
-    if review.user_id != current_user.id or current_user.role != 'admin':
+    if review.user_id != current_user.id and current_user.role != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Можно удалить только свой отзыв")
     await db.execute(update(ReviewModel).where(ReviewModel.id == review_id).values(is_active=False))
     await db.flush()
