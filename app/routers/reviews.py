@@ -7,9 +7,10 @@ from app.auth import get_current_buyer, get_current_user
 from app.db_depends import get_async_db
 from app.models import Review as ReviewModel
 from app.models import User as UserModel
-from app.routers.services import check_product_id, update_product_rating, check_review_id
+from app.routers.services import check_product_id, update_product_rating, check_review_id, check_ex_review_user
 from app.schemas import CreateReview as CreateReviewSchema
 from app.schemas import Review as ReviewSchema
+from .products import router as product_router
 
 router = APIRouter(prefix='/reviews', tags=['reviews'])
 
@@ -22,7 +23,7 @@ async def get_all_reviews(db: AsyncSession = Depends(get_async_db)):
     return reviews
 
 
-@router.get('/{product_id}', response_model=list[ReviewSchema], status_code=status.HTTP_200_OK)
+@product_router.get('/review/{product_id}', response_model=list[ReviewSchema], status_code=status.HTTP_200_OK)
 async def get_product_review(product_id: int, db: AsyncSession = Depends(get_async_db)):
     """Возвращает отзывы по конкретному продукту"""
     await check_product_id(product_id, db)
@@ -38,6 +39,7 @@ async def create_review(review: CreateReviewSchema, db: AsyncSession = Depends(g
     """Создает отзыв"""
     await check_product_id(review.product_id, db)
     db_review = ReviewModel(**review.model_dump(), user_id=current_user.id)
+    await check_ex_review_user(db_review, current_user, db)
     db.add(db_review)
     await db.flush()
     await update_product_rating(db_review.product_id, db)
