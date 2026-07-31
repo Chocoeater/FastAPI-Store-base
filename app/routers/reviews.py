@@ -42,6 +42,7 @@ async def create_review(review: CreateReviewSchema, db: AsyncSession = Depends(g
     await db.commit()
     await db.refresh(db_review)
     await update_product_rating(db_review.product_id, db)
+    return db_review
 
 
 @router.delete('/{review_id}', response_model=dict, status_code=status.HTTP_200_OK)

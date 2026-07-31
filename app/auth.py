@@ -85,7 +85,7 @@ async def get_current_seller(current_user: UserModel = Depends(get_current_user)
 async def get_current_buyer(current_user: UserModel = Depends(get_current_user)):
     """Проверяет, что пользователь имеет роль 'buyer'"""
     if current_user.role != "buyer":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Только для продавцов')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Только для покупателей')
     return current_user
 
 

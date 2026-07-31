@@ -28,6 +28,7 @@ class Product(ProductCreate):
     """Модель для ответа с данными товара. Используется в GET-запросах"""
     id: int = Field(..., description="Уникальный идентификатор товара")
     is_active: bool = Field(..., description="Активность товара")
+    rating: float
 
     model_config = ConfigDict(from_attributes=True)
 
