@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from decimal import Decimal
+from datetime import datetime
 
 class CategoryCreate(BaseModel):
     """Модель для создания и обновления категории. Используется в PUT и POST запросах"""
@@ -52,3 +53,13 @@ class UserSchema(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+class Review(BaseModel):
+    """Возвращает полную информацию по отзыву"""
+    id: int
+    user_id: int
+    product_id: int
+    comment: str | None
+    comment_date: datetime
+    grade: int
+    is_active: bool
