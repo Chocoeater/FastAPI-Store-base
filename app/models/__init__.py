@@ -1,5 +1,6 @@
 from .products import Product
 from .categories import Category
 from .users import User
+from .reviews import Review
 
-__all__ = ["Category", "Product", "User"]
+__all__ = ["Category", "Product", "User", "Review"]

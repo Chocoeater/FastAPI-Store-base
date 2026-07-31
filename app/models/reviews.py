@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import ForeignKey, Text, DateTime, func, CheckConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -23,3 +23,6 @@ class Review(Base):
     )
     grade: Mapped[int]
     is_active: Mapped[bool] = mapped_column(default=True)
+
+    user: Mapped["User"] = relationship("User", back_populates="reviews")
+    product: Mapped["Product"] = relationship("Product", back_populates="reviews")
