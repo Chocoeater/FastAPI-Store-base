@@ -68,5 +68,5 @@ class Review(BaseModel):
 class CreateReview(BaseModel):
     """Модель для создания отзыва"""
     product_id: int
-    comment: str | None
-    grade: int
+    comment: str | None = None
+    grade: int = Field(ge=1, le= 5)
