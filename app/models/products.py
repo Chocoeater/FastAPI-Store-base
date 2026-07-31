@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from decimal import Decimal
 
 from app.database import Base
+from app.schemas import Review
 
 
 class Product(Base):
@@ -21,4 +22,4 @@ class Product(Base):
 
     category: Mapped["Category"] = relationship("Category", back_populates="products")
     seller: Mapped["User"] = relationship("User", back_populates="products")
-
+    reviews: Mapped[list["Review"]] = relationship("Review", back_populates="product")
