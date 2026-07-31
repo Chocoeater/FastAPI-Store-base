@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 
-from app.models import Review
+from app.models import Review as ReviewModel
 from app.models.categories import Category as CategoryModel
 from app.models.products import Product as ProductModel
 from app.models.users import User as UserModel
@@ -57,9 +57,9 @@ async def check_user_id(user_id: int, db: AsyncSession) -> UserModel:
     return user
 
 
-async def check_review_id(review_id: int, db: AsyncSession) -> Review:
+async def check_review_id(review_id: int, db: AsyncSession) -> ReviewModel:
     """Проверяет существование отзыва и его активность"""
-    review = await db.scalar(select(Review).where(Review.id == review_id, Review.is_active == True))
+    review = await db.scalar(select(ReviewModel).where(ReviewModel.id == review_id, ReviewModel.is_active == True))
     if review is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Отзыв не найден')
     return review
@@ -68,15 +68,17 @@ async def check_review_id(review_id: int, db: AsyncSession) -> Review:
 async def update_product_rating(product_id: int, db: AsyncSession):
     """Обновляет рейтинг продукта"""
     result = await db.execute(
-        select(func.round(func.avg(Review.grade), 2)).where(Review.product_id == product_id, Review.is_active == True))
+        select(func.round(func.avg(ReviewModel.grade), 2)).where(ReviewModel.product_id == product_id,
+                                                                 ReviewModel.is_active == True))
     avg_rating = result.scalar() or 0.0
     product = await db.get(ProductModel, product_id)
     product.rating = avg_rating
 
 
-async def check_ex_review_user(review: Review, user: UserModel, db: AsyncSession) -> None:
+async def check_ex_review_user(product_id: int, user_id: int, db: AsyncSession) -> None:
     """Проверяет, оставлял ли пользователь отзыв"""
-    db_review = db.scalar(select(Review).where(Review.product_id == review.product_id, Review.user_id == user.id))
-    if db_review:
+    db_review = await db.scalar(
+        select(ReviewModel).where(ReviewModel.product_id == product_id, ReviewModel.user_id == user_id,
+                                  ReviewModel.is_active == True))
+    if db_review is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Вы уже оставляли отзыв на товар')
-
