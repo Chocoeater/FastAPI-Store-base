@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Query
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,46 +8,50 @@ from app.models.categories import Category as CategoryModel
 from app.models.products import Product as ProductModel
 from app.models.users import User as UserModel
 from app.routers.services import check_category_id, check_product_id
-from app.schemas import Product as ProductResponseSchema, ProductCreate as ProductRequestSchema, ProductList
+from app.schemas import Product as ProductResponseSchema, ProductCreate as ProductRequestSchema, ProductList, \
+    ProductPagination, ProductSort
 
-router = APIRouter(prefix="/products", tags=["products"], )
+router = APIRouter(prefix="/products", tags=["products"],)
+
+
 
 # !TODO вынести фильтрации в pydantic модель
 @router.get("/", response_model=ProductList, status_code=status.HTTP_200_OK)
-async def get_all_products(page: int = Query(1, ge=1),
-                           page_size: int = Query(20, ge=1, le=100),
-                           category_id: int | None = Query(None, description="ID категории для фильтрации"),
-                           min_price: float | None = Query(None, description="Минимальная цена товара"),
-                           max_price: float | None = Query(None, description="Максимальная цена товара"),
-                           in_stock: bool | None = Query(None, description="Только товара в наличии"),
-                           seller_id: int | None = Query(None, description="ID продавца для фильтрации"),
+async def get_all_products(pagination: ProductPagination = Depends(),
                            db: AsyncSession = Depends(get_async_db)):
     """Возвращает список всех товаров с поддержкой фильтров"""
     filters = [ProductModel.is_active == True]
 
-    if category_id is not None:
-        filters.append(ProductModel.category_id == category_id)
-    if min_price is not None:
-        filters.append(ProductModel.price >= min_price)
-    if max_price is not None:
-        filters.append(ProductModel.price <= max_price)
-    if in_stock is not None:
-        filters.append(ProductModel.stock > 0 if in_stock else ProductModel.stock == 0)
-    if seller_id is not None:
-        filters.append(ProductModel.seller_id == seller_id)
+    if pagination.category_id is not None:
+        filters.append(ProductModel.category_id == pagination.category_id)
+    if pagination.min_price is not None:
+        filters.append(ProductModel.price >= pagination.min_price)
+    if pagination.max_price is not None:
+        filters.append(ProductModel.price <= pagination.max_price)
+    if pagination.in_stock is not None:
+        filters.append(ProductModel.stock > 0 if pagination.in_stock else ProductModel.stock == 0)
+    if pagination.seller_id is not None:
+        filters.append(ProductModel.seller_id == pagination.seller_id)
+
+    sort_data = {
+        ProductSort.id: ProductModel.id,
+        ProductSort.created_at: ProductModel.created_at
+    }
+
+    order_by = sort_data.get(pagination.sort_by)
 
     total_stmt = select(func.count()).select_from(ProductModel).where(*filters)
     total = await db.scalar(total_stmt) or 0
 
-    product_stmt = select(ProductModel).where(*filters).order_by(ProductModel.id).offset(
-        (page - 1) * page_size).limit(page_size)
+    product_stmt = select(ProductModel).where(*filters).order_by(order_by).offset(
+        (pagination.page - 1) * pagination.page_size).limit(pagination.page_size)
     items = (await db.scalars(product_stmt)).all()
 
     return {
         "items": items,
         "total": total,
-        "page": page,
-        "page_size": page_size
+        "page": pagination.page,
+        "page_size": pagination.page_size
     }
 
 

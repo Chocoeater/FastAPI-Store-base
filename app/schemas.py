@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from decimal import Decimal
 from datetime import datetime
+from enum import Enum
 
 class CategoryCreate(BaseModel):
     """Модель для создания и обновления категории. Используется в PUT и POST запросах"""
@@ -79,3 +80,18 @@ class ProductList(BaseModel):
     page_size: int = Field(ge=1, description="Количество элементов на странице")
 
     model_config = ConfigDict(from_attributes=True)
+
+class ProductSort(Enum):
+    id = "id"
+    created_at = "created_at"
+
+class ProductPagination(BaseModel):
+    """Фильтры и пагинация для продуктов"""
+    page: int = Field(ge=1, default=1, description="Текущая станица")
+    page_size: int = Field(ge=1, le=100, default=10, description="Количество объектов на странице")
+    category_id: int | None = Field(default=None, description="ID категории для фильтрации")
+    min_price: float | None = Field(default=None, description="Минимальная цена товара")
+    max_price: float | None = Field(default=None, description="Максимальная цена товара")
+    in_stock: bool | None = Field(default=None, description="Только товара в наличии")
+    seller_id: int | None = Field(default=None, description="ID продавца для фильтрации")
+    sort_by: ProductSort = Field(default=ProductSort.id)
