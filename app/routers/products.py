@@ -4,22 +4,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_seller
 from app.db_depends import get_async_db
-from app.models.categories import Category as CategoryModel
 from app.models.products import Product as ProductModel
 from app.models.users import User as UserModel
 from app.routers.services import check_category_id, check_product_id
 from app.schemas import Product as ProductResponseSchema, ProductCreate as ProductRequestSchema, ProductList, \
     ProductPagination, ProductSort
 
-router = APIRouter(prefix="/products", tags=["products"],)
+router = APIRouter(prefix="/products", tags=["products"], )
 
 
-
-# !TODO вынести фильтрации в pydantic модель
 @router.get("/", response_model=ProductList, status_code=status.HTTP_200_OK)
-async def get_all_products(pagination: ProductPagination = Depends(),
-                           db: AsyncSession = Depends(get_async_db)):
+async def get_all_products(pagination: ProductPagination = Depends(), db: AsyncSession = Depends(get_async_db)):
     """Возвращает список всех товаров с поддержкой фильтров"""
+    if pagination.min_price is not None and pagination.max_price is not None:
+        if pagination.max_price < pagination.min_price:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                detail="Максимальная цена должна быть больше либо равна минимальной")
+
     filters = [ProductModel.is_active == True]
 
     if pagination.category_id is not None:
@@ -33,10 +34,7 @@ async def get_all_products(pagination: ProductPagination = Depends(),
     if pagination.seller_id is not None:
         filters.append(ProductModel.seller_id == pagination.seller_id)
 
-    sort_data = {
-        ProductSort.id: ProductModel.id,
-        ProductSort.created_at: ProductModel.created_at
-    }
+    sort_data = {ProductSort.id: ProductModel.id, ProductSort.created_at: ProductModel.created_at}
 
     order_by = sort_data.get(pagination.sort_by)
 
@@ -47,14 +45,7 @@ async def get_all_products(pagination: ProductPagination = Depends(),
         (pagination.page - 1) * pagination.page_size).limit(pagination.page_size)
     items = (await db.scalars(product_stmt)).all()
 
-    return {
-        "items": items,
-        "total": total,
-        "page": pagination.page,
-        "page_size": pagination.page_size
-    }
-
-
+    return {"items": items, "total": total, "page": pagination.page, "page_size": pagination.page_size}
 
 
 @router.post("/", response_model=ProductResponseSchema, status_code=status.HTTP_201_CREATED)
