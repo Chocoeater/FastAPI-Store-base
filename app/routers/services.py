@@ -1,12 +1,14 @@
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import func
 
 from app.models import Review as ReviewModel
 from app.models.categories import Category as CategoryModel
 from app.models.products import Product as ProductModel
 from app.models.users import User as UserModel
+from app.models.cart_items import CartItem as CartItemModel
 from app.schemas import CategoryCreate, UserCreate
 
 
@@ -82,3 +84,31 @@ async def check_ex_review_user(product_id: int, user_id: int, db: AsyncSession) 
                                   ReviewModel.is_active == True))
     if db_review is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Вы уже оставляли отзыв на товар')
+
+
+async def ensure_product_available(db: AsyncSession, product_id: int) -> None:
+    result = await db.scalars(
+        select(ProductModel).where(
+            ProductModel.id == product_id,
+            ProductModel.is_active == True,
+        )
+    )
+    product = result.first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found or inactive",
+        )
+
+async def get_cart_item(
+    db: AsyncSession, user_id: int, product_id: int
+) -> CartItemModel | None:
+    result = await db.scalars(
+        select(CartItemModel)
+        .options(selectinload(CartItemModel.product))
+        .where(
+            CartItemModel.user_id == user_id,
+            CartItemModel.product_id == product_id,
+        )
+    )
+    return result.first()
