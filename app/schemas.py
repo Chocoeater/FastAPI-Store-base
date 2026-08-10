@@ -89,6 +89,7 @@ class ProductPagination(BaseModel):
     """Фильтры и пагинация для продуктов"""
     page: int = Field(ge=1, default=1, description="Текущая станица")
     page_size: int = Field(ge=1, le=100, default=10, description="Количество объектов на странице")
+    search: str | None = Field(default=None, min_length=1, description="Поиск по названию товара")
     category_id: int | None = Field(default=None, description="ID категории для фильтрации")
     min_price: float | None = Field(default=None, description="Минимальная цена товара")
     max_price: float | None = Field(default=None, description="Максимальная цена товара")

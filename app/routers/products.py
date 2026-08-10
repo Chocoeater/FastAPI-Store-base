@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy import select, update, func
+from sqlalchemy import select, update, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_seller
@@ -39,11 +39,27 @@ async def get_all_products(pagination: ProductPagination = Depends(), db: AsyncS
     order_by = sort_data.get(pagination.sort_by)
 
     total_stmt = select(func.count()).select_from(ProductModel).where(*filters)
+    rank_col = None
+    if pagination.search:
+        search_value = pagination.search.strip()
+        if search_value:
+            ts_query = func.websearch_to_tsquery('english', search_value)
+            filters.append(ProductModel.tsv.op('@@')(ts_query))
+            rank_col = func.ts_rank_cd(ProductModel.tsv, ts_query).label("rank")
+            total_stmt = select(func.count()).select_from(ProductModel).where(*filters)
+
     total = await db.scalar(total_stmt) or 0
 
-    product_stmt = select(ProductModel).where(*filters).order_by(order_by).offset(
-        (pagination.page - 1) * pagination.page_size).limit(pagination.page_size)
-    items = (await db.scalars(product_stmt)).all()
+    if rank_col is not None:
+        product_stmt = select(ProductModel, rank_col).where(*filters).order_by(desc(rank_col), ProductModel.id).offset(
+            (pagination.page - 1) * pagination.page_size).limit(pagination.page_size)
+        result = await db.execute(product_stmt)
+        rows = result.all()
+        items = [row[0] for row in rows]
+    else:
+        product_stmt = select(ProductModel).where(*filters).order_by(order_by).offset(
+            (pagination.page - 1) * pagination.page_size).limit(pagination.page_size)
+        items = (await db.scalars(product_stmt)).all()
 
     return {"items": items, "total": total, "page": pagination.page, "page_size": pagination.page_size}
 
