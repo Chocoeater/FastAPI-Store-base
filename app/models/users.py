@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -14,3 +15,4 @@ class User(Base):
 
     products: Mapped[list["Product"]] = relationship("Product", back_populates="seller")
     reviews: Mapped[list["Review"]] = relationship("Review", back_populates='user')
+    cart_items: Mapped[list["CartItem"]] = relationship("CartItem", back_populates='user', cascade="all, delete-orphan")

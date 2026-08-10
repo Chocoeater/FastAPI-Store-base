@@ -5,7 +5,7 @@ from decimal import Decimal
 from datetime import datetime
 
 from app.database import Base
-from app.schemas import Review
+
 
 
 class Product(Base):
@@ -39,6 +39,7 @@ class Product(Base):
     category: Mapped["Category"] = relationship("Category", back_populates="products")
     seller: Mapped["User"] = relationship("User", back_populates="products")
     reviews: Mapped[list["Review"]] = relationship("Review", back_populates="product")
+    cart_items: Mapped[list["CartItem"]] = relationship("CartItem", back_populates='product', cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_products_tsv_gin", "tsv", postgresql_using='gin'),
