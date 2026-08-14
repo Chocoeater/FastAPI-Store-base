@@ -1,12 +1,15 @@
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
+
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
+
 
 class CategoryCreate(BaseModel):
     """Модель для создания и обновления категории. Используется в PUT и POST запросах"""
     name: str = Field(..., min_length=3, max_length=50, description="Название категории (3-50 символов)")
     parent_id: int | None = Field(None, description="ID родительской категории, если есть")
+
 
 class Category(CategoryCreate):
     """Модель для ответа с данными категории. Используется в GET запросах"""
@@ -24,6 +27,7 @@ class ProductCreate(BaseModel):
     image_url: str | None = Field(None, max_length=200, description="URL изображения товара")
     stock: int = Field(..., ge=0, description="Количество товара на складе (не отрицательное)")
     category_id: int = Field(..., description="ID категории, к которой относится товар")
+
 
 class Product(ProductCreate):
     """Модель для ответа с данными товара. Используется в GET-запросах"""
@@ -43,7 +47,9 @@ class UserCreate(BaseModel):
 
 class UserUpdateAdmin(BaseModel):
     """Модель для обновления данных пользователя (только для администратора)"""
-    role: str = Field(default='buyer', pattern="^(buyer|seller|admin)$", description="Роль: 'buyer', 'seller', 'admin'")
+    role: str = Field(default='buyer', pattern="^(buyer|seller|admin)$",
+                      description="Роль: 'buyer', 'seller', 'admin'")
+
 
 class UserSchema(BaseModel):
     """Модель для ответа с данными пользователя"""
@@ -53,8 +59,10 @@ class UserSchema(BaseModel):
     role: str
     model_config = ConfigDict(from_attributes=True)
 
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
 
 class Review(BaseModel):
     """Возвращает полную информацию по отзыву"""
@@ -66,11 +74,13 @@ class Review(BaseModel):
     grade: int
     is_active: bool
 
+
 class CreateReview(BaseModel):
     """Модель для создания отзыва"""
     product_id: int
     comment: str | None = None
-    grade: int = Field(ge=1, le= 5)
+    grade: int = Field(ge=1, le=5)
+
 
 class ProductList(BaseModel):
     """Список пагинации для товаров"""
@@ -81,9 +91,11 @@ class ProductList(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class ProductSort(Enum):
     id = "id"
     created_at = "created_at"
+
 
 class ProductPagination(BaseModel):
     """Фильтры и пагинация для продуктов"""
@@ -97,17 +109,21 @@ class ProductPagination(BaseModel):
     seller_id: int | None = Field(default=None, description="ID продавца для фильтрации")
     sort_by: ProductSort = Field(default=ProductSort.id)
 
+
 class CartItemBase(BaseModel):
     product_id: int = Field(description="ID товара")
     quantity: int = Field(ge=1, description="Количество товара")
+
 
 class CartItemCreate(CartItemBase):
     """Модель для добавления нового товара в корзину."""
     pass
 
+
 class CartItemUpdate(BaseModel):
     """Модель для обновления количества товара в корзине."""
     quantity: int = Field(..., ge=1, description="Новое количество товара")
+
 
 class CartItem(BaseModel):
     """Товар в корзине с данными продукта."""
@@ -117,11 +133,43 @@ class CartItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class Cart(BaseModel):
     """Полная информация о корзине пользователя."""
     user_id: int = Field(..., description="ID пользователя")
     items: list[CartItem] = Field(default_factory=list, description="Содержимое корзины")
     total_quantity: int = Field(..., ge=0, description="Общее количество товаров")
     total_price: Decimal = Field(..., ge=0, description="Общая стоимость товаров")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrderItem(BaseModel):
+    id: int = Field(..., description="ID позиции заказа")
+    product_id: int = Field(..., description="ID товара")
+    quantity: int = Field(..., ge=1, description="Количество")
+    unit_price: Decimal = Field(..., ge=0, description="Цена за единицу на момент покупки")
+    total_price: Decimal = Field(..., ge=0, description="Сумма по позиции")
+    product: Product | None = Field(None, description="Полная информация о товаре")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class Order(BaseModel):
+    id: int = Field(..., description="ID заказа")
+    user_id: int = Field(..., description="ID пользователя")
+    status: str = Field(..., description="Текущий статус заказа")
+    total_amount: Decimal = Field(..., ge=0, description="Общая стоимость")
+    created_at: datetime = Field(..., description="Когда заказ был создан")
+    updated_at: datetime = Field(..., description="Когда последний раз обновлялся")
+    items: list[OrderItem] = Field(default_factory=list, description="Список позиций")
+
+    model_config = ConfigDict(from_attributes=True)
+
+class OrderList(BaseModel):
+    items: list[Order] = Field(..., description="Заказы на текущей странице")
+    total: int = Field(ge=0, description="Общее количество заказов")
+    page: int = Field(ge=1, description="Текущая страница")
+    page_size: int = Field(ge=1, description="Размер страницы")
 
     model_config = ConfigDict(from_attributes=True)

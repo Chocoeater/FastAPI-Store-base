@@ -10,6 +10,7 @@ from app.models.products import Product as ProductModel
 from app.models.users import User as UserModel
 from app.models.cart_items import CartItem as CartItemModel
 from app.schemas import CategoryCreate, UserCreate
+from app.models.orders import Order as OrderModel, OrderItem as OrderItemModel
 
 
 async def check_parent_id(category: CategoryCreate, db: AsyncSession) -> None:
@@ -110,5 +111,16 @@ async def get_cart_item(
             CartItemModel.user_id == user_id,
             CartItemModel.product_id == product_id,
         )
+    )
+    return result.first()
+
+
+async def load_order_with_items(db: AsyncSession, order_id: int) -> OrderModel | None:
+    result = await db.scalars(
+        select(OrderModel)
+        .options(
+            selectinload(OrderModel.items).selectinload(OrderItemModel.product),
+        )
+        .where(OrderModel.id == order_id)
     )
     return result.first()

@@ -11,8 +11,9 @@
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
+from .config import DB_PASSWORD
 
-DATABASE_URL = 'postgresql+asyncpg://ecommerce_user:1111@localhost:5432/ecommerce_db'
+DATABASE_URL = f'postgresql+asyncpg://ecommerce_user_new:{DB_PASSWORD}@localhost:5432/ecommerce_db_new'
 
 async_engine = create_async_engine(DATABASE_URL, echo=True)
 
