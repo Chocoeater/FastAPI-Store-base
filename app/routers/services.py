@@ -124,3 +124,4 @@ async def load_order_with_items(db: AsyncSession, order_id: int) -> OrderModel |
         .where(OrderModel.id == order_id)
     )
     return result.first()
+

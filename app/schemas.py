@@ -2,7 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
+from fastapi import Form
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from sqlalchemy.sql.annotation import Annotated
 
 
 class CategoryCreate(BaseModel):
@@ -24,15 +26,32 @@ class ProductCreate(BaseModel):
     name: str = Field(..., min_length=3, max_length=100, description="Наименование товара (3-100 символов)")
     description: str | None = Field(None, max_length=500, description="Описание товара (до 500 символов)")
     price: Decimal = Field(..., gt=0, description="Цена товара (больше нуля)", decimal_places=2)
-    image_url: str | None = Field(None, max_length=200, description="URL изображения товара")
     stock: int = Field(..., ge=0, description="Количество товара на складе (не отрицательное)")
     category_id: int = Field(..., description="ID категории, к которой относится товар")
+
+    @classmethod
+    def as_form(
+            cls,
+            name: str = Form(...),
+            price: Decimal = Form(...),
+            stock: int = Form(...),
+            category_id: int = Form(...),
+            description: str | None = Form(...),
+    ) -> "ProductCreate":
+        return cls(
+            name=name,
+            description=description,
+            price=price,
+            stock=stock,
+            category_id=category_id,
+        )
 
 
 class Product(ProductCreate):
     """Модель для ответа с данными товара. Используется в GET-запросах"""
     id: int = Field(..., description="Уникальный идентификатор товара")
     is_active: bool = Field(..., description="Активность товара")
+    image_url: str
     rating: float
 
     model_config = ConfigDict(from_attributes=True)
